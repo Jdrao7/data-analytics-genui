@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/share/[id] - Get a shared dashboard by ID
@@ -8,6 +8,7 @@ export async function GET(
 ) {
     try {
         const { id: shareId } = await params;
+        const supabase = getSupabase();
 
         // Get the shared dashboard
         const { data, error } = await supabase
@@ -52,6 +53,7 @@ export async function DELETE(
 ) {
     try {
         const { id: shareId } = await params;
+        const supabase = getSupabase();
 
         const { error, count } = await supabase
             .from('shared_dashboards')

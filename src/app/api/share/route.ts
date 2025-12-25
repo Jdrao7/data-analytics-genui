@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Generate a short share ID
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
         }
 
         const shareId = generateShareId();
+        const supabase = getSupabase();
 
         // Insert into database
         const { error } = await supabase
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest) {
 // GET /api/share - List all shares (optional, for admin)
 export async function GET() {
     try {
+        const supabase = getSupabase();
+
         const { data, error } = await supabase
             .from('shared_dashboards')
             .select('share_id, name, created_at, view_count')
