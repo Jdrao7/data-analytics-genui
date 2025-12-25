@@ -14,12 +14,23 @@ export default function ShareDialog({ isOpen, onClose, dashboardName, dashboardS
     const [shareUrl, setShareUrl] = useState<string | null>(null);
     const [copied, setCopied] = useState<'link' | 'embed' | null>(null);
     const [embedSize, setEmbedSize] = useState({ width: 800, height: 600 });
+    const [isCreating, setIsCreating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     if (!isOpen) return null;
 
-    const handleCreateLink = () => {
-        const url = createShareLink(dashboardName, dashboardSchema);
-        setShareUrl(url);
+    const handleCreateLink = async () => {
+        setIsCreating(true);
+        setError(null);
+        try {
+            const url = await createShareLink(dashboardName, dashboardSchema);
+            setShareUrl(url);
+        } catch (err) {
+            console.error('Error creating share link:', err);
+            setError('Failed to create share link. Please try again.');
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     const copyToClipboard = (text: string, type: 'link' | 'embed') => {
@@ -48,11 +59,22 @@ export default function ShareDialog({ isOpen, onClose, dashboardName, dashboardS
                         <p className="text-gray-400 mb-6">
                             Create a public link that anyone can use to view this dashboard.
                         </p>
+                        {error && (
+                            <p className="text-red-400 text-sm mb-4">{error}</p>
+                        )}
                         <button
                             onClick={handleCreateLink}
-                            className="px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl hover:opacity-90 transition-all font-medium"
+                            disabled={isCreating}
+                            className="px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            🔗 Create Share Link
+                            {isCreating ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                    Creating...
+                                </span>
+                            ) : (
+                                '🔗 Create Share Link'
+                            )}
                         </button>
                     </div>
                 ) : (
@@ -72,8 +94,8 @@ export default function ShareDialog({ isOpen, onClose, dashboardName, dashboardS
                                 <button
                                     onClick={() => copyToClipboard(shareUrl, 'link')}
                                     className={`px-4 py-2 rounded-lg transition-all ${copied === 'link'
-                                            ? 'bg-emerald-500/20 text-emerald-400'
-                                            : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30'
+                                        ? 'bg-emerald-500/20 text-emerald-400'
+                                        : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30'
                                         }`}
                                 >
                                     {copied === 'link' ? '✓ Copied!' : 'Copy'}
@@ -121,8 +143,8 @@ export default function ShareDialog({ isOpen, onClose, dashboardName, dashboardS
                                 <button
                                     onClick={() => copyToClipboard(embedCode, 'embed')}
                                     className={`absolute top-2 right-2 px-3 py-1 rounded text-xs transition-all ${copied === 'embed'
-                                            ? 'bg-emerald-500 text-white'
-                                            : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                                        ? 'bg-emerald-500 text-white'
+                                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
                                         }`}
                                 >
                                     {copied === 'embed' ? '✓' : 'Copy'}
