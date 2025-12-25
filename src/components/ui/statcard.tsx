@@ -13,9 +13,9 @@ interface StatCardProps {
 
 export function StatCard({ title, value, change, changeLabel, icon: Icon, trend = "neutral" }: StatCardProps) {
   return (
-    <Card className="glass border-border/50 hover:border-primary/30 transition-all duration-300">
+    <Card className="bg-[rgba(17,24,39,0.7)] backdrop-blur-xl border border-white/10 hover:border-cyan-500/30 transition-all duration-300 text-white shadow-xl">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-slate-400">{title}</CardTitle>
         <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
           <Icon className="size-5 text-primary" />
         </div>

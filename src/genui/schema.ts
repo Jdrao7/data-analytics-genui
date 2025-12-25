@@ -200,6 +200,67 @@ export const UIComponentSchema: z.ZodType<any> = z.lazy(() =>
         color: z.string().optional(),
       }),
     }),
+    // --- Stock Market Components ---
+    z.object({
+      type: z.literal("StockTicker"),
+      props: z.object({
+        symbol: z.string(),
+        name: z.string().optional(),
+        price: z.union([z.string(), z.number()]),
+        change: z.number(),
+        changePercent: z.number().optional(),
+        trendData: z.array(z.number()).optional(),
+        color: z.string().optional(),
+      }),
+    }),
+    z.object({
+      type: z.literal("MarketSentiment"),
+      props: z.object({
+        value: z.number().min(0).max(100),
+        label: z.string().optional(),
+        title: z.string().optional(),
+      }),
+    }),
+    z.object({
+      type: z.literal("StockWatchlist"),
+      props: z.object({
+        title: z.string().optional(),
+        items: z.array(z.object({
+          symbol: z.string(),
+          name: z.string(),
+          price: z.union([z.string(), z.number()]),
+          change: z.number(),
+          changePercent: z.number(),
+          volume: z.string().optional(),
+          chartData: z.array(z.number()).optional(),
+        })),
+      }),
+    }),
+    z.object({
+      type: z.literal("FinancialChart"),
+      props: z.object({
+        title: z.string().optional(),
+        height: z.number().optional(),
+        chartType: z.enum(["candlestick", "line", "area", "bar", "baseline", "histogram"]).optional(),
+        data: z.array(z.object({
+          time: z.union([z.string(), z.number()]),
+          open: z.number().optional(),
+          high: z.number().optional(),
+          low: z.number().optional(),
+          close: z.number().optional(),
+          value: z.number().optional(), // For line/area/histogram
+          volume: z.number().optional(),
+          color: z.string().optional(),
+        })),
+        colors: z.object({
+          upColor: z.string().optional(),
+          downColor: z.string().optional(),
+          lineColor: z.string().optional(),
+          areaTopColor: z.string().optional(),
+          areaBottomColor: z.string().optional(),
+        }).optional(),
+      }),
+    }),
     z.object({
       type: z.literal("Countdown"),
       props: z.object({
