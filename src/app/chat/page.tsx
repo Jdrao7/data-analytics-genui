@@ -23,7 +23,8 @@ import {
   MessageSquare,
   Search,
   Trash2,
-  Clock
+  Clock,
+  Eye
 } from "lucide-react";
 
 type Message = {
@@ -32,6 +33,8 @@ type Message = {
   ui?: any;
   timestamp?: Date;
 };
+
+type MobileTab = 'chat' | 'preview' | 'saved';
 
 export default function DashboardBuilder() {
   const [prompt, setPrompt] = useState('');
@@ -44,11 +47,12 @@ export default function DashboardBuilder() {
   const [dashboardName] = useState('My Dashboard');
   const [savedDashboards, setSavedDashboards] = useState<SavedDashboard[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileTab, setMobileTab] = useState<MobileTab>('chat');
 
   // Load saved dashboards
   useEffect(() => {
     setSavedDashboards(getSavedDashboards());
-  }, [showSaveDialog]); // Refresh when save dialog closes
+  }, [showSaveDialog]);
 
   const filteredDashboards = savedDashboards.filter(d =>
     d.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -77,6 +81,8 @@ export default function DashboardBuilder() {
       const ui = await res.json();
       setCurrentUI(ui);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Dashboard updated!', ui, timestamp: new Date() }]);
+      // Switch to preview on mobile after generation
+      setMobileTab('preview');
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I had trouble. Please try again.', timestamp: new Date() }]);
     } finally {
@@ -95,6 +101,7 @@ export default function DashboardBuilder() {
   function handleLoadDashboard(schema: any) {
     setCurrentUI(schema);
     setMessages([{ role: 'assistant', content: 'Loaded your saved dashboard.', ui: schema, timestamp: new Date() }]);
+    setMobileTab('preview');
   }
 
   function handleDeleteDashboard(id: string, name: string) {
@@ -108,6 +115,7 @@ export default function DashboardBuilder() {
     setMessages([]);
     setCurrentUI(null);
     setActiveDataSource(null);
+    setMobileTab('chat');
   }
 
   return (
@@ -149,11 +157,15 @@ export default function DashboardBuilder() {
         </div>
       </header>
 
-      {/* Main Content - Three Pane Layout */}
+      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden relative z-10">
 
-        {/* Left Pane - Chat */}
-        <div className="w-full lg:w-[380px] xl:w-[420px] flex flex-col border-r border-white/5 bg-[#0a0f1c]/50 backdrop-blur-sm shrink-0">
+        {/* Left Pane - Chat (hidden on mobile when not active) */}
+        <div className={`
+          ${mobileTab === 'chat' ? 'flex' : 'hidden'} 
+          lg:flex
+          w-full lg:w-[380px] xl:w-[420px] flex-col border-r border-white/5 bg-[#0a0f1c]/50 backdrop-blur-sm shrink-0
+        `}>
 
           {/* Chat Header */}
           <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
@@ -216,7 +228,7 @@ export default function DashboardBuilder() {
             )}
           </div>
 
-          {/* Input Area - Fixed at bottom of chat pane */}
+          {/* Input Area */}
           <div className="p-4 border-t border-white/5 bg-[#0a0f1c]/80 backdrop-blur-sm">
             <div className="flex gap-2 p-1 rounded-xl bg-white/5 border border-white/10">
               <input
@@ -239,8 +251,12 @@ export default function DashboardBuilder() {
           </div>
         </div>
 
-        {/* Center Pane - Preview */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Center Pane - Preview (hidden on mobile when not active) */}
+        <div className={`
+          ${mobileTab === 'preview' ? 'flex' : 'hidden'} 
+          lg:flex
+          flex-1 flex-col overflow-hidden
+        `}>
 
           {/* Preview Header */}
           <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-[#0a0f1c]/50 backdrop-blur-sm shrink-0">
@@ -266,21 +282,21 @@ export default function DashboardBuilder() {
                   className="px-3 py-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-all flex items-center gap-1.5"
                 >
                   <Download className="w-3 h-3" />
-                  Export
+                  <span className="hidden sm:inline">Export</span>
                 </button>
                 <button
                   onClick={() => setShowSaveDialog(true)}
                   className="px-3 py-1.5 text-xs text-cyan-400 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/20 rounded-lg transition-all flex items-center gap-1.5"
                 >
                   <Save className="w-3 h-3" />
-                  Save
+                  <span className="hidden sm:inline">Save</span>
                 </button>
                 <button
                   onClick={() => setShowShareDialog(true)}
                   className="px-3 py-1.5 text-xs text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-all flex items-center gap-1.5"
                 >
                   <Share2 className="w-3 h-3" />
-                  Share
+                  <span className="hidden sm:inline">Share</span>
                 </button>
               </div>
             )}
@@ -293,7 +309,6 @@ export default function DashboardBuilder() {
                 <GenUIRenderer ui={currentUI} />
               </div>
             ) : (
-              // Empty State
               <div className="h-full flex items-center justify-center">
                 <div className="text-center max-w-md mx-auto px-6">
                   <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center border border-white/5">
@@ -309,8 +324,12 @@ export default function DashboardBuilder() {
           </div>
         </div>
 
-        {/* Right Pane - Saved Dashboards */}
-        <div className="hidden xl:flex w-[260px] 2xl:w-[280px] flex-col border-l border-white/5 bg-[#0a0f1c]/50 backdrop-blur-sm shrink-0">
+        {/* Right Pane - Saved Dashboards (hidden on mobile, visible on click) */}
+        <div className={`
+          ${mobileTab === 'saved' ? 'flex' : 'hidden'} 
+          lg:hidden xl:flex
+          w-full lg:w-[260px] 2xl:w-[280px] flex-col border-l border-white/5 bg-[#0a0f1c]/50 backdrop-blur-sm shrink-0
+        `}>
 
           {/* Saved Header */}
           <div className="p-4 border-b border-white/5">
@@ -389,6 +408,50 @@ export default function DashboardBuilder() {
               {savedDashboards.length} dashboard{savedDashboards.length !== 1 ? 's' : ''} saved
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="lg:hidden border-t border-white/5 bg-[#0a0f1c]/95 backdrop-blur-xl shrink-0 relative z-20">
+        <div className="flex items-center justify-around py-2">
+          <button
+            onClick={() => setMobileTab('chat')}
+            className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all ${mobileTab === 'chat'
+                ? 'text-cyan-400 bg-cyan-500/10'
+                : 'text-slate-500 hover:text-slate-300'
+              }`}
+          >
+            <MessageSquare className="w-5 h-5" />
+            <span className="text-xs font-medium">Chat</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('preview')}
+            className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all relative ${mobileTab === 'preview'
+                ? 'text-cyan-400 bg-cyan-500/10'
+                : 'text-slate-500 hover:text-slate-300'
+              }`}
+          >
+            <Eye className="w-5 h-5" />
+            <span className="text-xs font-medium">Preview</span>
+            {currentUI && mobileTab !== 'preview' && (
+              <span className="absolute top-1 right-4 w-2 h-2 bg-emerald-400 rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setMobileTab('saved')}
+            className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all relative ${mobileTab === 'saved'
+                ? 'text-cyan-400 bg-cyan-500/10'
+                : 'text-slate-500 hover:text-slate-300'
+              }`}
+          >
+            <FolderOpen className="w-5 h-5" />
+            <span className="text-xs font-medium">Saved</span>
+            {savedDashboards.length > 0 && (
+              <span className="absolute -top-0.5 right-3 px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 text-[10px] font-bold rounded-full">
+                {savedDashboards.length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
