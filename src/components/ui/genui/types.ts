@@ -8,7 +8,8 @@ export type RenderContext = {
 
 export type ComponentRenderFn = (
     props: any,
-    context: RenderContext
+    context: RenderContext,
+    node?: UIComponentSchemaType
 ) => React.ReactNode;
 
 export type ComponentRegistry = Record<string, ComponentRenderFn>;

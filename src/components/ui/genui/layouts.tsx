@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Stack, Divider, Card as MuiCard, CardContent, Grid } from '@mui/material';
-import { ComponentRegistry, RenderContext } from './types';
+import { ComponentRegistry } from './types';
 import { UIComponentSchemaType } from '@/genui/schema';
 
 export const layoutComponents: ComponentRegistry = {
@@ -23,19 +23,22 @@ export const layoutComponents: ComponentRegistry = {
         </Stack>
     ),
 
-    Grid: (props, { renderNode }, node: UIComponentSchemaType) => (
-        <Grid container spacing={props.spacing ?? 2} sx={{ flexWrap: 'wrap' }}>
-            {node.children?.map((c: UIComponentSchemaType, i: number) => {
-                const childSize = c.props?.size ?? c.props?.xs ?? props.xs ??
-                    (node.children!.length <= 3 ? { xs: 12, sm: 6, md: 12 / Math.min(node.children!.length, 4) } : { xs: 12, sm: 6, md: 4 });
-                return (
-                    <Grid size={childSize} key={i}>
-                        {renderNode(c)}
-                    </Grid>
-                );
-            })}
-        </Grid>
-    ),
+    Grid: (props, { renderNode }, node) => {
+        if (!node) return null;
+        return (
+            <Grid container spacing={props.spacing ?? 2} sx={{ flexWrap: 'wrap' }}>
+                {node.children?.map((c: UIComponentSchemaType, i: number) => {
+                    const childSize = c.props?.size ?? c.props?.xs ?? props.xs ??
+                        (node.children!.length <= 3 ? { xs: 12, sm: 6, md: 12 / Math.min(node.children!.length, 4) } : { xs: 12, sm: 6, md: 4 });
+                    return (
+                        <Grid size={childSize} key={i}>
+                            {renderNode(c)}
+                        </Grid>
+                    );
+                })}
+            </Grid>
+        );
+    },
 
     Card: (props, { renderChildren }) => (
         <MuiCard

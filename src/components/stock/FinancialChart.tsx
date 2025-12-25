@@ -75,13 +75,21 @@ export function FinancialChart({
 
         // Prepare Data (Ensure Time is valid)
         const formattedData = data.map(d => {
-            let timeVal = d.time;
+            let timeVal: Time;
             if (typeof d.time === 'string' && /^\d{1,2}:\d{2}$/.test(d.time)) {
                 // simple HH:MM
                 const [h, m] = d.time.split(':');
                 const date = new Date();
                 date.setHours(parseInt(h), parseInt(m), 0, 0);
-                timeVal = (date.getTime() / 1000) as Time;
+                timeVal = Math.floor(date.getTime() / 1000) as Time;
+            } else if (typeof d.time === 'string') {
+                // Try parsing as date string (YYYY-MM-DD or similar)
+                const parsed = Date.parse(d.time);
+                if (!isNaN(parsed)) {
+                    timeVal = Math.floor(parsed / 1000) as Time;
+                } else {
+                    timeVal = d.time as Time;
+                }
             } else {
                 timeVal = d.time as Time;
             }
@@ -92,7 +100,11 @@ export function FinancialChart({
             };
         });
 
-        formattedData.sort((a: any, b: any) => (a.time as number) - (b.time as number));
+        formattedData.sort((a: any, b: any) => {
+            const timeA = typeof a.time === 'number' ? a.time : 0;
+            const timeB = typeof b.time === 'number' ? b.time : 0;
+            return timeA - timeB;
+        });
 
         // Add Main Series based on Type
         let mainSeries: any;

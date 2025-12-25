@@ -97,11 +97,7 @@ export function renderNode(node: UIComponentSchemaType): React.ReactNode {
   // Check component registry
   if (type in componentRegistry) {
     const renderFn = componentRegistry[type as keyof typeof componentRegistry];
-    // Special handling for Grid which needs the full node
-    if (type === 'Grid') {
-      return (renderFn as any)(props, context, node);
-    }
-    return renderFn(props, context);
+    return renderFn(props, context, node);
   }
 
   // Component not found

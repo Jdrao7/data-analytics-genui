@@ -20,6 +20,7 @@
     "antd": "^6.1.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.23.26",
     "lightweight-charts": "^5.1.0",
     "lucide-react": "^0.562.0",
     "mammoth": "^1.11.0",

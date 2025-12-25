@@ -8,7 +8,7 @@ import {
   AreaChart,
   Area,
 
-  
+
   PieChart,
   Pie,
   Cell,
@@ -48,7 +48,7 @@ const containerVariants = {
     y: 0,
     transition: {
       duration: 0.5,
-      ease: "easeOut",
+      ease: [0.25, 0.1, 0.25, 1] as const,  // easeOut cubic bezier
     },
   },
 }
