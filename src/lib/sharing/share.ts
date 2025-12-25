@@ -1,6 +1,4 @@
-// Sharing functionality for dashboards
-
-const SHARED_STORAGE_KEY = 'genui_shared_dashboards';
+// Sharing functionality for dashboards - using Vercel Postgres
 
 export interface SharedDashboard {
     shareId: string;
@@ -10,77 +8,67 @@ export interface SharedDashboard {
     viewCount: number;
 }
 
-// Generate short share ID
-function generateShareId(): string {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < 8; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
-
-// Get all shared dashboards
-function getSharedDashboards(): SharedDashboard[] {
-    if (typeof window === 'undefined') return [];
-
+// Create a shareable link for a dashboard (calls API)
+export async function createShareLink(name: string, schema: any): Promise<string> {
     try {
-        const stored = localStorage.getItem(SHARED_STORAGE_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch {
-        return [];
+        const response = await fetch('/api/share', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, schema }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to create share link');
+        }
+
+        const data = await response.json();
+        return data.shareUrl;
+    } catch (error) {
+        console.error('Error creating share link:', error);
+        throw error;
     }
 }
 
-// Save shared dashboards
-function saveSharedDashboards(dashboards: SharedDashboard[]): void {
-    localStorage.setItem(SHARED_STORAGE_KEY, JSON.stringify(dashboards));
-}
+// Get shared dashboard by ID (calls API)
+export async function getSharedDashboard(shareId: string): Promise<SharedDashboard | null> {
+    try {
+        const response = await fetch(`/api/share/${shareId}`);
 
-// Create a shareable link for a dashboard
-export function createShareLink(name: string, schema: any): string {
-    const shares = getSharedDashboards();
+        if (!response.ok) {
+            if (response.status === 404) {
+                return null;
+            }
+            throw new Error('Failed to fetch shared dashboard');
+        }
 
-    const shareId = generateShareId();
-    const newShare: SharedDashboard = {
-        shareId,
-        name,
-        schema,
-        createdAt: new Date().toISOString(),
-        viewCount: 0
-    };
-
-    shares.push(newShare);
-    saveSharedDashboards(shares);
-
-    // Return the full share URL
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${baseUrl}/share/${shareId}`;
-}
-
-// Get shared dashboard by ID
-export function getSharedDashboard(shareId: string): SharedDashboard | null {
-    const shares = getSharedDashboards();
-    const share = shares.find(s => s.shareId === shareId);
-
-    if (share) {
-        // Increment view count
-        share.viewCount++;
-        saveSharedDashboards(shares);
+        const data = await response.json();
+        return {
+            shareId: data.shareId,
+            name: data.name,
+            schema: data.schema,
+            createdAt: data.createdAt,
+            viewCount: data.viewCount,
+        };
+    } catch (error) {
+        console.error('Error fetching shared dashboard:', error);
+        return null;
     }
-
-    return share || null;
 }
 
-// Delete a share link
-export function deleteShareLink(shareId: string): boolean {
-    const shares = getSharedDashboards();
-    const filtered = shares.filter(s => s.shareId !== shareId);
+// Delete a share link (calls API)
+export async function deleteShareLink(shareId: string): Promise<boolean> {
+    try {
+        const response = await fetch(`/api/share/${shareId}`, {
+            method: 'DELETE',
+        });
 
-    if (filtered.length === shares.length) return false;
-
-    saveSharedDashboards(filtered);
-    return true;
+        return response.ok;
+    } catch (error) {
+        console.error('Error deleting share link:', error);
+        return false;
+    }
 }
 
 // Generate embed code
@@ -95,7 +83,25 @@ export function generateEmbedCode(shareUrl: string, width = 800, height = 600): 
 ></iframe>`;
 }
 
-// Get all shares for current user
-export function getUserShares(): SharedDashboard[] {
-    return getSharedDashboards();
+// Get all shares (calls API) - for listing user's shares
+export async function getUserShares(): Promise<SharedDashboard[]> {
+    try {
+        const response = await fetch('/api/share');
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch shares');
+        }
+
+        const data = await response.json();
+        return data.shares.map((share: any) => ({
+            shareId: share.share_id,
+            name: share.name,
+            createdAt: share.created_at,
+            viewCount: share.view_count,
+            schema: null, // Not included in list response
+        }));
+    } catch (error) {
+        console.error('Error fetching shares:', error);
+        return [];
+    }
 }
