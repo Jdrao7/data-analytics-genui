@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/share/[id] - Get a shared dashboard by ID
@@ -10,34 +10,31 @@ export async function GET(
         const { id: shareId } = await params;
 
         // Get the shared dashboard
-        const result = await sql`
-            SELECT share_id, name, schema, created_at, view_count 
-            FROM shared_dashboards 
-            WHERE share_id = ${shareId}
-        `;
+        const { data, error } = await supabase
+            .from('shared_dashboards')
+            .select('share_id, name, schema, created_at, view_count')
+            .eq('share_id', shareId)
+            .single();
 
-        if (result.rows.length === 0) {
+        if (error || !data) {
             return NextResponse.json(
                 { error: 'Dashboard not found' },
                 { status: 404 }
             );
         }
 
-        const dashboard = result.rows[0];
-
         // Increment view count
-        await sql`
-            UPDATE shared_dashboards 
-            SET view_count = view_count + 1 
-            WHERE share_id = ${shareId}
-        `;
+        await supabase
+            .from('shared_dashboards')
+            .update({ view_count: (data.view_count || 0) + 1 })
+            .eq('share_id', shareId);
 
         return NextResponse.json({
-            shareId: dashboard.share_id,
-            name: dashboard.name,
-            schema: dashboard.schema,
-            createdAt: dashboard.created_at,
-            viewCount: dashboard.view_count + 1
+            shareId: data.share_id,
+            name: data.name,
+            schema: data.schema,
+            createdAt: data.created_at,
+            viewCount: (data.view_count || 0) + 1
         });
     } catch (error) {
         console.error('Error fetching shared dashboard:', error);
@@ -56,13 +53,20 @@ export async function DELETE(
     try {
         const { id: shareId } = await params;
 
-        const result = await sql`
-            DELETE FROM shared_dashboards 
-            WHERE share_id = ${shareId}
-            RETURNING share_id
-        `;
+        const { error, count } = await supabase
+            .from('shared_dashboards')
+            .delete()
+            .eq('share_id', shareId);
 
-        if (result.rows.length === 0) {
+        if (error) {
+            console.error('Supabase delete error:', error);
+            return NextResponse.json(
+                { error: 'Failed to delete dashboard' },
+                { status: 500 }
+            );
+        }
+
+        if (count === 0) {
             return NextResponse.json(
                 { error: 'Dashboard not found' },
                 { status: 404 }

@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Generate a short share ID
@@ -27,10 +27,21 @@ export async function POST(request: NextRequest) {
         const shareId = generateShareId();
 
         // Insert into database
-        await sql`
-            INSERT INTO shared_dashboards (share_id, name, schema)
-            VALUES (${shareId}, ${name}, ${JSON.stringify(schema)})
-        `;
+        const { error } = await supabase
+            .from('shared_dashboards')
+            .insert({
+                share_id: shareId,
+                name: name,
+                schema: schema
+            });
+
+        if (error) {
+            console.error('Supabase insert error:', error);
+            return NextResponse.json(
+                { error: 'Failed to create share link', details: error.message },
+                { status: 500 }
+            );
+        }
 
         // Build the share URL
         const protocol = request.headers.get('x-forwarded-proto') || 'http';
@@ -54,15 +65,22 @@ export async function POST(request: NextRequest) {
 // GET /api/share - List all shares (optional, for admin)
 export async function GET() {
     try {
-        const result = await sql`
-            SELECT share_id, name, created_at, view_count 
-            FROM shared_dashboards 
-            ORDER BY created_at DESC 
-            LIMIT 50
-        `;
+        const { data, error } = await supabase
+            .from('shared_dashboards')
+            .select('share_id, name, created_at, view_count')
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) {
+            console.error('Supabase query error:', error);
+            return NextResponse.json(
+                { error: 'Failed to list shares' },
+                { status: 500 }
+            );
+        }
 
         return NextResponse.json({
-            shares: result.rows
+            shares: data || []
         });
     } catch (error) {
         console.error('Error listing shares:', error);
